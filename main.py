@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from telethon.sync import TelegramClient
-from telethon.tl.types import InputMessageID
+from telethon.sessions import StringSession
 import os, io
 
 API_ID = int(os.environ["API_ID"])
@@ -20,12 +20,19 @@ async def download(message_id: int):
     msg = await client.get_messages("me", ids=message_id)
     if not msg or not msg.document:
         return {"error": "arquivo não encontrado"}
+    
     buf = io.BytesIO()
     await client.download_media(msg, buf)
     buf.seek(0)
-    nome = message_id
+    
+    nome = f"livro_{message_id}.epub"
     for attr in msg.document.attributes:
         if hasattr(attr, "file_name"):
             nome = attr.file_name
-    return StreamingResponse(buf, media_type="application/octet-stream",
+            
+    return StreamingResponse(buf, media_type="application/octet-stream", 
         headers={"Content-Disposition": f"attachment; filename={nome}"})
+
+@app.get("/")
+async def root():
+    return {"status": "Servidor da Biblioteca Pink Online"}
